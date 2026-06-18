@@ -258,10 +258,14 @@ export class ThreeSceneService {
   // ─────────────────────────────────────────────────────────────────────────
   // Model load
   // ─────────────────────────────────────────────────────────────────────────
-  private loadModel(): void {
-    new GLTFLoader().load(
-      MODEL_URL,
-      (gltf) => {
+  private async loadModel(): Promise<void> {
+    const loader = new GLTFLoader();
+
+    try {
+      this.loadingProgress.set(5);
+      const arrayBuffer = await this.fetchModelArrayBuffer(MODEL_URL);
+
+      loader.parse(arrayBuffer, '', (gltf) => {
         const model = gltf.scene;
         this.modelPivot = new THREE.Group();
         this.scene.add(this.modelPivot);
@@ -309,25 +313,105 @@ export class ThreeSceneService {
         // Finish loading
         this.loadingProgress.set(100);
         this.isLoaded.set(true);
-      },
-      (xhr) => {
-        if (xhr.total > 0) {
-          const percent = Math.min(99, Math.round((xhr.loaded / xhr.total) * 100));
-          this.loadingProgress.set(percent);
-        } else {
-          // If total is unknown, just progress up to 90%
-          const current = this.loadingProgress();
-          if (current < 90) {
-            this.loadingProgress.set(current + 5);
+      }, (err) => {
+        console.error('Error parsing bronze model:', err);
+        this.isLoaded.set(true);
+      });
+    } catch (err) {
+      console.error('Error loading bronze model:', err);
+      this.isLoaded.set(true);
+    }
+  }
+
+  // Try Cache Storage first, fallback to fetch. Stores successful responses in cache.
+  private async fetchModelArrayBuffer(url: string): Promise<ArrayBuffer> {
+    if (!this.isBrowser) throw new Error('Not in browser');
+
+    const cacheName = 'glb-models-v1';
+
+    try {
+      if ('caches' in window) {
+        const cache = await caches.open(cacheName);
+        const cached = await cache.match(url);
+        if (cached) {
+          const ab = await cached.arrayBuffer();
+          this.loadingProgress.set(100);
+          return ab;
+        }
+      }
+
+      // Not cached — fetch from network and stream to track progress
+      this.loadingProgress.set(5);
+      const resp = await fetch(url, { credentials: 'same-origin' });
+      if (!resp.ok) throw new Error(`Network response not ok: ${resp.status}`);
+
+      const contentLengthHeader = resp.headers.get('Content-Length') || resp.headers.get('content-length');
+      const total = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+
+      // If there's a streaming body, read chunks and report progress. Otherwise fallback to arrayBuffer()
+      if (resp.body && typeof resp.body.getReader === 'function') {
+        const reader = resp.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let received = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) {
+            chunks.push(value);
+            received += value.length;
+
+            if (total > 0) {
+              const percent = Math.min(99, Math.round((received / total) * 99));
+              this.loadingProgress.set(percent);
+            } else {
+              // No total known: nudge progress forward but don't reach 100
+              const current = this.loadingProgress();
+              const bump = Math.min(6, Math.max(1, Math.floor(value.length / 32768)));
+              this.loadingProgress.set(Math.min(95, current + bump));
+            }
           }
         }
-      },
-      err => {
-        console.error('Error loading bronze model:', err);
-        // Set to loaded anyway so we don't block user forever if load fails
-        this.isLoaded.set(true);
+
+        // Concatenate chunks into single ArrayBuffer
+        const arrayBuffer = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) {
+          arrayBuffer.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        // Store in cache (use Response constructed from buffer)
+        if ('caches' in window) {
+          try {
+            const cache = await caches.open(cacheName);
+            const responseToCache = new Response(arrayBuffer, { headers: { 'Content-Type': 'model/gltf-binary' } });
+            await cache.put(url, responseToCache);
+          } catch (e) {
+            console.warn('Failed to store model in cache:', e);
+          }
+        }
+
+        return arrayBuffer.buffer;
+      } else {
+        // No streaming support — fall back to arrayBuffer and set progress to 50 then 100
+        this.loadingProgress.set(20);
+        const fullBuffer = await resp.arrayBuffer();
+        this.loadingProgress.set(90);
+        if ('caches' in window) {
+          try {
+            const cache = await caches.open(cacheName);
+            await cache.put(url, resp.clone());
+          } catch (e) {
+            console.warn('Failed to store model in cache:', e);
+          }
+        }
+        return fullBuffer;
       }
-    );
+    } catch (err) {
+      // Re-throw so caller can handle
+      throw err;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
