@@ -3,7 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ScrollService } from './scroll.service';
-import { CursorService  } from './cursor.service';
+import { CursorService } from './cursor.service';
 import {
   MODEL_URL, SPARK_COUNT, MODEL_TARGET_SCALE, PIVOT_Y_OFFSET,
   CAMERA_START, TONE_MAPPING_EXPOSURE, BRONZE_ROUGHNESS, BRONZE_METALNESS,
@@ -14,18 +14,18 @@ import {
 export class ThreeSceneService {
   private readonly scrollService = inject(ScrollService);
   private readonly cursorService = inject(CursorService);
-  private readonly destroyRef    = inject(DestroyRef);
-  private readonly platformId    = inject(PLATFORM_ID);
-  private readonly isBrowser     = isPlatformBrowser(this.platformId);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
-  private scene!:       THREE.Scene;
-  private camera!:      THREE.PerspectiveCamera;
-  private renderer?:    THREE.WebGLRenderer;
-  private canvas?:      HTMLCanvasElement;
+  private scene!: THREE.Scene;
+  private camera!: THREE.PerspectiveCamera;
+  private renderer?: THREE.WebGLRenderer;
+  private canvas?: HTMLCanvasElement;
   private resizeHandler?: () => void;
-  private startTime =   0;
-  private lastTime =    0;
-  private mixer?:       THREE.AnimationMixer;
+  private startTime = 0;
+  private lastTime = 0;
+  private mixer?: THREE.AnimationMixer;
 
   constructor() {
     this.destroyRef.onDestroy(() => this.teardown());
@@ -49,6 +49,36 @@ export class ThreeSceneService {
     }
   };
 
+  private ripples: Ripple[] = [];
+
+  private readonly handleClick = (e: MouseEvent) => {
+    if (!this.canvas || !this.camera) return;
+
+    const rect = this.canvas.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    const normal = new THREE.Vector3();
+    this.camera.getWorldDirection(normal);
+    normal.negate();
+    const plane = new THREE.Plane(normal, 0);
+    const rippleCenter = new THREE.Vector3();
+    raycaster.ray.intersectPlane(plane, rippleCenter);
+
+    this.ripples.push({
+      center: rippleCenter,
+      time: 0,
+      duration: 0.3,
+      radius: 0,
+      strength: 1.0
+    });
+  };
+
   private getDelta(): number {
     const now = performance.now();
     const delta = (now - this.lastTime) / 1000.0;
@@ -60,16 +90,16 @@ export class ThreeSceneService {
     return (performance.now() - this.startTime) / 1000.0;
   }
 
-  private modelPivot?:  THREE.Group;
+  private modelPivot?: THREE.Group;
   private sparkParticles?: THREE.Points;
-  private sparkData:    SparkDatum[] = [];
+  private sparkData: SparkDatum[] = [];
 
-  private bgMaterial?:  THREE.ShaderMaterial;
+  private bgMaterial?: THREE.ShaderMaterial;
   private shaderUniforms = {
-    uTime:       { value: 0 },
+    uTime: { value: 0 },
     uResolution: { value: new THREE.Vector2(1024, 768) },
-    uMouse:      { value: new THREE.Vector2(0, 0) },
-    uScroll:     { value: 0 },
+    uMouse: { value: new THREE.Vector2(0, 0) },
+    uScroll: { value: 0 },
   };
 
   private sizes = { width: 1024, height: 768 };
@@ -93,6 +123,7 @@ export class ThreeSceneService {
     this.canvas = canvas;
     this.canvas.addEventListener('webglcontextlost', this.handleContextLost, false);
     this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored, false);
+    window.addEventListener('pointerdown', this.handleClick, { passive: true });
 
     this.sizes.width = window.innerWidth;
     this.sizes.height = window.innerHeight;
@@ -162,7 +193,7 @@ export class ThreeSceneService {
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
     key.shadow.camera.near = 1.0;
-    key.shadow.camera.far  = 15;
+    key.shadow.camera.far = 15;
     key.shadow.bias = -0.001;
     this.scene.add(key);
 
@@ -183,38 +214,39 @@ export class ThreeSceneService {
     c.width = c.height = 16;
     const ctx = c.getContext('2d')!;
     const g = ctx.createRadialGradient(8, 8, 0, 8, 8, 8);
-    g.addColorStop(0,    'rgba(255,255,255,1)');
+    g.addColorStop(0, 'rgba(255,255,255,1)');
     g.addColorStop(0.25, 'rgba(255,255,255,0.85)');
-    g.addColorStop(0.6,  'rgba(255,255,255,0.3)');
-    g.addColorStop(1,    'rgba(0,0,0,0)');
+    g.addColorStop(0.6, 'rgba(255,255,255,0.3)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 16, 16);
     return new THREE.CanvasTexture(c);
   }
 
   private createSparks(): void {
-    const geo  = new THREE.BufferGeometry();
-    const pos  = new Float32Array(SPARK_COUNT * 3);
-    const col  = new Float32Array(SPARK_COUNT * 3);
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(SPARK_COUNT * 3);
+    const col = new Float32Array(SPARK_COUNT * 3);
 
     for (let i = 0; i < SPARK_COUNT; i++) {
-      pos[i*3]   = (Math.random() - 0.5) * 6.5;
-      pos[i*3+1] = (Math.random() - 0.5) * 5.0 - 0.5;
-      pos[i*3+2] = (Math.random() - 0.5) * 6.5;
+      pos[i * 3] = (Math.random() - 0.5) * 6.5;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 5.0 - 0.5;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 6.5;
 
       if (Math.random() < 0.6) {
-        col[i*3] = 1.0; col[i*3+1] = 0.4 + Math.random()*0.15; col[i*3+2] = 0.05 + Math.random()*0.1;
+        col[i * 3] = 1.0; col[i * 3 + 1] = 0.4 + Math.random() * 0.15; col[i * 3 + 2] = 0.05 + Math.random() * 0.1;
       } else {
-        col[i*3] = 0.55 + Math.random()*0.15; col[i*3+1] = 0.82 + Math.random()*0.12; col[i*3+2] = 1.0;
+        col[i * 3] = 0.55 + Math.random() * 0.15; col[i * 3 + 1] = 0.82 + Math.random() * 0.12; col[i * 3 + 2] = 1.0;
       }
 
       this.sparkData.push({
-        speedX: (Math.random()-0.5)*0.4, speedY: 0.15+Math.random()*0.3, speedZ: (Math.random()-0.5)*0.4,
-        swaySpeed: 0.5+Math.random()*1.5, swayRadius: 0.05+Math.random()*0.15, phase: Math.random()*Math.PI*2
+        speedX: (Math.random() - 0.5) * 0.4, speedY: 0.15 + Math.random() * 0.3, speedZ: (Math.random() - 0.5) * 0.4,
+        swaySpeed: 0.5 + Math.random() * 1.5, swayRadius: 0.05 + Math.random() * 0.15, phase: Math.random() * Math.PI * 2,
+        offsetX: 0, offsetY: 0, offsetZ: 0
       });
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 
     this.sparkParticles = new THREE.Points(geo, new THREE.PointsMaterial({
       size: 0.025, vertexColors: true, transparent: true, opacity: 0.85,
@@ -384,7 +416,7 @@ export class ThreeSceneService {
   // ─────────────────────────────────────────────────────────────────────────
   private bindResize(): void {
     this.resizeHandler = () => {
-      this.sizes.width  = window.innerWidth;
+      this.sizes.width = window.innerWidth;
       this.sizes.height = window.innerHeight;
       if (this.camera) {
         this.camera.aspect = this.sizes.width / this.sizes.height;
@@ -413,8 +445,8 @@ export class ThreeSceneService {
   private tick(): void {
     if (!this.isBrowser) return;
 
-    const dt  = this.getDelta();
-    const t   = this.getElapsedTime();
+    const dt = this.getDelta();
+    const t = this.getElapsedTime();
 
     // Drive scroll
     this.scrollService.tick(LERP_SCROLL);
@@ -424,9 +456,9 @@ export class ThreeSceneService {
 
     if (this.mixer) this.mixer.update(dt);
 
-    const scroll  = this.scrollService.currentScroll();
-    const mouseX  = this.cursorService.smoothMouseX();
-    const mouseY  = this.cursorService.smoothMouseY();
+    const scroll = this.scrollService.currentScroll();
+    const mouseX = this.cursorService.smoothMouseX();
+    const mouseY = this.cursorService.smoothMouseY();
     const scrollV = this.scrollService.scrollVelocity();
 
     // Gentle model tilt from mouse
@@ -437,38 +469,93 @@ export class ThreeSceneService {
 
     // Sparks
     if (this.sparkParticles) {
+      // 1. Update active ripples
+      for (let r = this.ripples.length - 1; r >= 0; r--) {
+        const ripple = this.ripples[r];
+        ripple.time += dt;
+        ripple.radius = ripple.time * 4.5;
+        if (ripple.time >= ripple.duration) {
+          this.ripples.splice(r, 1);
+        }
+      }
+
       const pos = this.sparkParticles.geometry.attributes['position'].array as Float32Array;
       const speedMul = 1.0 + scrollV * 9.0;
-      const turb     = scrollV * 0.8;
+      const turb = scrollV * 0.8;
 
       for (let i = 0; i < SPARK_COUNT; i++) {
         const idx = i * 3;
-        const d   = this.sparkData[i];
-        pos[idx]   += d.speedX * dt * speedMul;
-        pos[idx+1] += d.speedY * dt * speedMul;
-        pos[idx+2] += d.speedZ * dt * speedMul;
+        const d = this.sparkData[i];
+        pos[idx] += d.speedX * dt * speedMul;
+        pos[idx + 1] += d.speedY * dt * speedMul;
+        pos[idx + 2] += d.speedZ * dt * speedMul;
         const sway = d.swayRadius * (1.0 + turb * 4.0);
-        pos[idx]   += Math.sin(t * d.swaySpeed + d.phase) * sway * dt;
-        pos[idx+2] += Math.cos(t * d.swaySpeed + d.phase) * sway * dt;
-        if (pos[idx+1] > 3.0 || Math.abs(pos[idx]) > 3.5 || Math.abs(pos[idx+2]) > 3.5) {
-          pos[idx+1] = -2.5;
-          pos[idx]   = (Math.random()-0.5) * 3.0;
-          pos[idx+2] = (Math.random()-0.5) * 3.0;
+        pos[idx] += Math.sin(t * d.swaySpeed + d.phase) * sway * dt;
+        pos[idx + 2] += Math.cos(t * d.swaySpeed + d.phase) * sway * dt;
+
+        // Apply ripples forces
+        const px = pos[idx];
+        const py = pos[idx + 1];
+        const pz = pos[idx + 2];
+
+        for (const ripple of this.ripples) {
+          const dx = px - ripple.center.x;
+          const dy = py - ripple.center.y;
+          const dz = pz - ripple.center.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+          if (dist > 0.001) {
+            const waveWidth = 1.2;
+            const diff = Math.abs(dist - ripple.radius);
+
+            if (diff < waveWidth) {
+              const intensity = 1.0 - (diff / waveWidth);
+              const ageFade = 1.0 - (ripple.time / ripple.duration);
+              const pushForce = intensity * ageFade * ripple.strength;
+
+              const dirX = dx / dist;
+              const dirY = dy / dist;
+              const dirZ = dz / dist;
+
+              d.offsetX += dirX * pushForce * dt * 50.0;
+              d.offsetY += dirY * pushForce * dt * 50.0;
+              d.offsetZ += dirZ * pushForce * dt * 50.0;
+            }
+          }
+        }
+
+        // Apply offset velocities with drag
+        pos[idx] += d.offsetX * dt;
+        pos[idx + 1] += d.offsetY * dt;
+        pos[idx + 2] += d.offsetZ * dt;
+
+        const decay = Math.pow(0.93, dt * 60.0);
+        d.offsetX *= decay;
+        d.offsetY *= decay;
+        d.offsetZ *= decay;
+
+        if (pos[idx + 1] > 3.0 || Math.abs(pos[idx]) > 3.5 || Math.abs(pos[idx + 2]) > 3.5) {
+          pos[idx + 1] = -2.5;
+          pos[idx] = (Math.random() - 0.5) * 3.0;
+          pos[idx + 2] = (Math.random() - 0.5) * 3.0;
+          d.offsetX = 0;
+          d.offsetY = 0;
+          d.offsetZ = 0;
         }
       }
       this.sparkParticles.geometry.attributes['position'].needsUpdate = true;
     }
 
     // Camera orbit (360° driven by scroll)
-    const phi    = scroll * Math.PI * 2.0;
-    const camY   = 0.35 + Math.sin(scroll * Math.PI) * 0.8;
-    const radius = 4.2  - Math.sin(scroll * Math.PI) * 0.6;
-    const camX   = radius * Math.sin(phi);
-    const camZ   = radius * Math.cos(phi);
+    const phi = scroll * Math.PI * 2.0;
+    const camY = 0.35 + Math.sin(scroll * Math.PI) * 0.8;
+    const radius = 4.2 - Math.sin(scroll * Math.PI) * 0.6;
+    const camX = radius * Math.sin(phi);
+    const camZ = radius * Math.cos(phi);
 
-    const transP    = Math.min(1.0, scroll / 0.28);
+    const transP = Math.min(1.0, scroll / 0.28);
     const easeFactor = (Math.cos(transP * Math.PI) + 1.0) * 0.5;
-    const lookAtX   = -0.9 * easeFactor;
+    const lookAtX = -0.9 * easeFactor;
 
     if (this.camera) {
       this.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), LERP_CAMERA);
@@ -476,7 +563,7 @@ export class ThreeSceneService {
     }
 
     // Shader uniforms
-    this.shaderUniforms.uTime.value   = t;
+    this.shaderUniforms.uTime.value = t;
     this.shaderUniforms.uMouse.value.set(mouseX, -mouseY);
     this.shaderUniforms.uScroll.value = scroll;
 
@@ -496,6 +583,7 @@ export class ThreeSceneService {
       this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored);
       this.canvas = undefined;
     }
+    window.removeEventListener('pointerdown', this.handleClick);
 
     if (this.resizeHandler) {
       window.removeEventListener('resize', this.resizeHandler);
@@ -554,6 +642,7 @@ export class ThreeSceneService {
     this.modelPivot = undefined;
     this.sparkParticles = undefined;
     this.sparkData = [];
+    this.ripples = [];
   }
 
   private disposeMaterial(material: THREE.Material): void {
@@ -574,4 +663,13 @@ export class ThreeSceneService {
 interface SparkDatum {
   speedX: number; speedY: number; speedZ: number;
   swaySpeed: number; swayRadius: number; phase: number;
+  offsetX: number; offsetY: number; offsetZ: number;
+}
+
+interface Ripple {
+  center: THREE.Vector3;
+  time: number;
+  duration: number;
+  radius: number;
+  strength: number;
 }
