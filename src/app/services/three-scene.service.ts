@@ -269,10 +269,13 @@ export class ThreeSceneService {
 
         model.traverse(child => {
           if ((child as THREE.Mesh).isMesh) {
+            child.castShadow = child.receiveShadow = true;
             const mesh = child as THREE.Mesh;
             mesh.castShadow = mesh.receiveShadow = true;
             const mat = mesh.material as THREE.MeshStandardMaterial;
             if (mat) {
+              mat.side = THREE.DoubleSide;
+              mat.needsUpdate = true;
               mat.roughness = BRONZE_ROUGHNESS;
               mat.metalness = BRONZE_METALNESS;
               mat.flatShading = false;
@@ -317,7 +320,7 @@ export class ThreeSceneService {
         }
       },
       err => {
-        console.error('Error loading bronze horse:', err);
+        console.error('Error loading bronze model:', err);
         // Set to loaded anyway so we don't block user forever if load fails
         this.isLoaded.set(true);
       }
