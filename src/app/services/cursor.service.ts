@@ -1,6 +1,5 @@
 import { Injectable, signal, inject, DestroyRef, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { LERP_OUTER_CURSOR } from '../constants/scene.constants';
 
 @Injectable({ providedIn: 'root' })
 export class CursorService {

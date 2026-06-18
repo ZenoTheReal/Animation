@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ScrollService } from './scroll.service';
 import { CursorService } from './cursor.service';
+import { ThreeAAAdapter } from './three-aa-adapter';
 import {
   MODEL_URL, SPARK_COUNT, MODEL_TARGET_SCALE, PIVOT_Y_OFFSET,
   CAMERA_START, TONE_MAPPING_EXPOSURE, BRONZE_ROUGHNESS, BRONZE_METALNESS,
@@ -21,6 +22,7 @@ export class ThreeSceneService {
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
   private renderer?: THREE.WebGLRenderer;
+  private aaAdapter?: ThreeAAAdapter;
   private canvas?: HTMLCanvasElement;
   private resizeHandler?: () => void;
   private startTime = 0;
@@ -178,6 +180,11 @@ export class ThreeSceneService {
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = TONE_MAPPING_EXPOSURE;
+
+    if (this.renderer && this.scene && this.camera) {
+      this.aaAdapter = new ThreeAAAdapter(this.renderer, this.scene, this.camera);
+      this.aaAdapter.enable(this.sizes.width, this.sizes.height);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -516,6 +523,9 @@ export class ThreeSceneService {
         this.renderer.setSize(this.sizes.width, this.sizes.height);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       }
+      if (this.aaAdapter) {
+        this.aaAdapter.resize(this.sizes.width, this.sizes.height);
+      }
       this.shaderUniforms.uResolution.value.set(this.sizes.width, this.sizes.height);
     };
     window.addEventListener('resize', this.resizeHandler);
@@ -657,7 +667,11 @@ export class ThreeSceneService {
     this.shaderUniforms.uMouse.value.set(mouseX, -mouseY);
     this.shaderUniforms.uScroll.value = scroll;
 
-    this.renderer.render(this.scene, this.camera);
+    if (this.aaAdapter) {
+      this.aaAdapter.render();
+    } else if (this.renderer) {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 
   public teardown(): void {
@@ -722,6 +736,11 @@ export class ThreeSceneService {
     if (this.bgMaterial) {
       this.bgMaterial.dispose();
       this.bgMaterial = undefined;
+    }
+
+    if (this.aaAdapter) {
+      this.aaAdapter.dispose();
+      this.aaAdapter = undefined;
     }
 
     if (this.renderer) {
