@@ -98,7 +98,7 @@ export class LoaderComponent {
 
     effect(() => {
       const url = currentUrl();
-      const isLanding = url.includes('/landing') || url === '/';
+      const isLanding = url === '/';
 
       if (!isLanding || this.sceneService.isLoaded()) {
         this.fade.set(true);

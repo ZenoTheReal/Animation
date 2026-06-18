@@ -18,7 +18,7 @@ import { NAV_TARGETS } from '../../constants/scene.constants';
           <a #navLink (click)="scrollTo(3)" [class.active]="activeIndex() === 3">IV. TIME</a>
           <span class="active-indicator" [style.transform]="indicatorTransform()"></span>
         } @else {
-          <a (click)="goTo('/landing')">SCULPTURES</a>
+          <a (click)="goTo('/')">SCULPTURES</a>
           @if (isLoggedIn()) {
             <a (click)="goTo('/home')" [class.active]="currentUrl().includes('/home')">WORKSPACE</a>
           } @else {
@@ -158,8 +158,8 @@ export class HeaderComponent {
 
   readonly activeIndex = this.scrollService.activeIndex;
   readonly isLoggedIn  = this.authService.isLoggedIn;
-  readonly currentUrl  = signal('/landing');
-  readonly isLanding   = computed(() => this.currentUrl().includes('/landing'));
+  readonly currentUrl  = signal('/');
+  readonly isLanding   = computed(() => this.currentUrl() === '/' || this.currentUrl() === '');
 
   readonly navLinks = viewChildren<ElementRef<HTMLAnchorElement>>('navLink');
   readonly indicatorTransform = signal('translateX(0px) scaleX(0)');
@@ -191,7 +191,7 @@ export class HeaderComponent {
     if (this.isLanding()) {
       this.scrollTo(0);
     } else {
-      this.goTo('/landing');
+      this.goTo('/');
     }
   }
 
@@ -202,7 +202,7 @@ export class HeaderComponent {
   toggleContact(): void {
     if (this.currentUrl().includes('/contact')) {
       // Go back to landing or home
-      this.router.navigate([this.isLoggedIn() ? '/home' : '/landing']);
+      this.router.navigate([this.isLoggedIn() ? '/home' : '/']);
     } else {
       this.goTo('/contact');
     }
