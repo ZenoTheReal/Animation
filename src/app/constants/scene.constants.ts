@@ -1,8 +1,5 @@
-export const ASSET_BASE_URL =
-  'https://api.getlayers.ai/storage/v1/object/public/public/assets/laocoon-59f84455c6';
-
-export const MODEL_URL    = `${ASSET_BASE_URL}/bronze_horse.glb`;
-export const IMAGE_1_URL  = `${ASSET_BASE_URL}/1.png`;
+export const MODEL_URL    = '/bull.glb';
+export const IMAGE_1_URL  = '/2.png';
 
 // Scroll active windows [start, end]
 export const SLIDE_RANGES = [

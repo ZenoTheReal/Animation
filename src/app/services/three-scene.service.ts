@@ -7,7 +7,7 @@ import { CursorService  } from './cursor.service';
 import {
   MODEL_URL, SPARK_COUNT, MODEL_TARGET_SCALE, PIVOT_Y_OFFSET,
   CAMERA_START, TONE_MAPPING_EXPOSURE, BRONZE_ROUGHNESS, BRONZE_METALNESS,
-  MAP_ANISOTROPY, LERP_SCROLL, LERP_MOUSE, LERP_OUTER_CURSOR, LERP_CAMERA
+  MAP_ANISOTROPY, LERP_SCROLL, LERP_CAMERA
 } from '../constants/scene.constants';
 
 @Injectable({ providedIn: 'root' })
