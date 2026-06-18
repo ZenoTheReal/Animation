@@ -11,7 +11,9 @@ import { ThreeSceneService } from '../../services/three-scene.service';
     .webgl {
       position: fixed;
       top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      width: 100vw !important;
+      height: 100vh !important;
+      display: block;
       z-index: 1;
       pointer-events: none;
       outline: none;
