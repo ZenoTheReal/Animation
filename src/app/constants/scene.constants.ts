@@ -1,4 +1,4 @@
-export const MODEL_URL    = '/bull.glb';
+export const MODEL_URL    = '/buster_drone.glb';
 export const IMAGE_1_URL  = '/2.png';
 
 // Scroll active windows [start, end]
