@@ -275,6 +275,9 @@ export class ThreeSceneService {
             const mat = mesh.material as THREE.MeshStandardMaterial;
             if (mat) {
               mat.side = THREE.DoubleSide;
+              mat.transparent = false;
+              mat.depthWrite = true;
+              mat.depthTest = true; 
               mat.needsUpdate = true;
               mat.roughness = BRONZE_ROUGHNESS;
               mat.metalness = BRONZE_METALNESS;

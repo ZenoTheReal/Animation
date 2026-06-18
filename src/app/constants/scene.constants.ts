@@ -1,5 +1,5 @@
 export const MODEL_URL    = '/buster_drone.glb';
-export const IMAGE_1_URL  = '/2.png';
+export const IMAGE_1_URL  = '/3.png';
 
 // Scroll active windows [start, end]
 export const SLIDE_RANGES = [
