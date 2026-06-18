@@ -311,8 +311,8 @@ export class ThreeSceneService {
       uniform float uScroll;
 
       void main(){
-        vec2 uv=(gl_FragCoord.xy-0.5*uResolution.xy)/uResolution.y;
         float aspect=uResolution.x/uResolution.y;
+        vec2 uv=(vUv-0.5)*vec2(aspect,1.0);
         float time=uTime*0.08;
         float scroll=uScroll;
 
