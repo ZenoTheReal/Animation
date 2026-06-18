@@ -1,4 +1,5 @@
 import { Component, inject, signal, effect } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
 import { ThreeSceneService } from '../../services/three-scene.service';
 
 @Component({
@@ -81,18 +82,32 @@ import { ThreeSceneService } from '../../services/three-scene.service';
 })
 export class LoaderComponent {
   private readonly sceneService = inject(ThreeSceneService);
-  readonly progress = this.sceneService.loadingProgress;
+  private readonly router = inject(Router);
 
+  readonly progress = this.sceneService.loadingProgress;
   readonly fade = signal(false);
   readonly hidden = signal(false);
 
   constructor() {
+    const currentUrl = signal(this.router.url);
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        currentUrl.set(event.urlAfterRedirects || event.url);
+      }
+    });
+
     effect(() => {
-      if (this.sceneService.isLoaded()) {
+      const url = currentUrl();
+      const isLanding = url.includes('/landing') || url === '/';
+
+      if (!isLanding || this.sceneService.isLoaded()) {
         this.fade.set(true);
         setTimeout(() => {
           this.hidden.set(true);
         }, 1200);
+      } else {
+        this.fade.set(false);
+        this.hidden.set(false);
       }
     });
   }

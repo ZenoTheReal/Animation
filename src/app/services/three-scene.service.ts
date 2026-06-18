@@ -416,9 +416,8 @@ export class ThreeSceneService {
     const dt  = this.getDelta();
     const t   = this.getElapsedTime();
 
-    // Drive scroll + cursor lerps
+    // Drive scroll
     this.scrollService.tick(LERP_SCROLL);
-    this.cursorService.tick(LERP_OUTER_CURSOR, LERP_MOUSE);
 
     // If WebGL is not supported / failed to build renderer, return early
     if (!this.renderer) return;

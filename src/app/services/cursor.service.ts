@@ -29,6 +29,8 @@ export class CursorService {
   readonly smoothMouseX = () => this._smoothMouseX;
   readonly smoothMouseY = () => this._smoothMouseY;
 
+  private rafId = 0;
+
   constructor() {
     if (this.isBrowser) {
       // Set initial values to middle of screen
@@ -44,8 +46,19 @@ export class CursorService {
         this._mouseNormY.set((e.clientY / window.innerHeight) * 2 - 1);
       };
       window.addEventListener('mousemove', onMove);
-      this.destroyRef.onDestroy(() =>
-        window.removeEventListener('mousemove', onMove));
+
+      const tickLoop = () => {
+        this.tick(0.2, 0.05); // LERP_OUTER_CURSOR = 0.2, LERP_MOUSE = 0.05
+        this.rafId = requestAnimationFrame(tickLoop);
+      };
+      this.rafId = requestAnimationFrame(tickLoop);
+
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener('mousemove', onMove);
+        if (this.rafId) {
+          cancelAnimationFrame(this.rafId);
+        }
+      });
     }
   }
 
