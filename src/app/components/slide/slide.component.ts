@@ -15,7 +15,7 @@ import { CharSplitPipe } from '../../pipes/char-split.pipe';
           </div>
           
           <h2 class="slide-title">
-            @for (tok of title() | charSplit; track $index) {
+            @for (tok of heading() | charSplit; track $index) {
               @if (tok.isBr) {
                 <br>
               } @else if (tok.isSpace) {
@@ -162,6 +162,6 @@ import { CharSplitPipe } from '../../pipes/char-split.pipe';
 export class SlideComponent {
   active      = input.required<boolean>();
   slideNumber = input.required<string>();
-  title       = input.required<string>();
+  heading     = input.required<string>();
   description = input.required<string>();
 }
