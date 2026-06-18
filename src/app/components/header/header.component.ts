@@ -140,6 +140,18 @@ import { NAV_TARGETS } from '../../constants/scene.constants';
       color: #d4a373;
       border-color: rgba(212, 163, 115, 0.5);
     }
+    @media (max-width: 1200px) {
+      .editorial-header {
+        padding: 0 2rem;
+      }
+      .nav-links {
+        gap: 1.5rem;
+      }
+      .nav-links a {
+        font-size: 0.68rem;
+        letter-spacing: 0.15rem;
+      }
+    }
     @media (max-width: 900px) {
       .editorial-header {
         padding: 0 2rem;
@@ -149,17 +161,53 @@ import { NAV_TARGETS } from '../../constants/scene.constants';
         display: none;
       }
     }
+    @media (max-width: 600px) {
+      .editorial-header {
+        padding: 0 1rem;
+        height: 65px;
+      }
+      .brand {
+        font-size: 1.4rem;
+        letter-spacing: 0.2rem;
+      }
+      .actions-group {
+        gap: 0.75rem;
+      }
+      .contact-btn, .join-btn {
+        padding: 0.5rem 1.1rem;
+        font-size: 0.65rem;
+        letter-spacing: 0.1rem;
+      }
+    }
+    @media (max-width: 420px) {
+      .editorial-header {
+        padding: 0 0.75rem;
+        height: 60px;
+      }
+      .brand {
+        font-size: 1.15rem;
+        letter-spacing: 0.1rem;
+      }
+      .actions-group {
+        gap: 0.5rem;
+      }
+      .contact-btn, .join-btn {
+        padding: 0.45rem 0.75rem;
+        font-size: 0.6rem;
+        letter-spacing: 0.05rem;
+      }
+    }
   `]
 })
 export class HeaderComponent {
   private readonly scrollService = inject(ScrollService);
-  private readonly authService   = inject(AuthService);
-  private readonly router        = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly activeIndex = this.scrollService.activeIndex;
-  readonly isLoggedIn  = this.authService.isLoggedIn;
-  readonly currentUrl  = signal('/');
-  readonly isLanding   = computed(() => this.currentUrl() === '/' || this.currentUrl() === '');
+  readonly isLoggedIn = this.authService.isLoggedIn;
+  readonly currentUrl = signal('/');
+  readonly isLanding = computed(() => this.currentUrl() === '/' || this.currentUrl() === '');
 
   readonly navLinks = viewChildren<ElementRef<HTMLAnchorElement>>('navLink');
   readonly indicatorTransform = signal('translateX(0px) scaleX(0)');
