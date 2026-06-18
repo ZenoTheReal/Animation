@@ -37,7 +37,8 @@
             "outputMode": "server",
             "security": {
               "allowedHosts": [
-                "192.168.6.36"
+                "192.168.6.36",
+                "animation-lirv.onrender.com"
               ]
             },
             "ssr": {
