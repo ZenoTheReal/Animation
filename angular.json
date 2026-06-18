@@ -78,6 +78,11 @@
               "buildTarget": "getlayers:build:development"
             }
           },
+          "options": {
+            "allowedHosts": [
+              "192.168.6.36"
+            ]
+          },
           "defaultConfiguration": "development"
         },
         "test": {
