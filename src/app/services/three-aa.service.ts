@@ -8,6 +8,7 @@ import {
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 export interface AARendering {
   composer: EffectComposer;
@@ -37,6 +38,7 @@ export function createAARendering(
   composer.setSize(width, height);
   composer.addPass(new RenderPass(scene, camera));
   composer.addPass(new SMAAPass());
+  composer.addPass(new OutputPass());
 
   return { composer, renderTarget };
 }
